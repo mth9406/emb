@@ -98,6 +98,15 @@ def find_train_csv(archive_dir: Path, metadata_dir: Path) -> Path:
 
 
 def build_dresses_csv(train_csv: Path, output_csv: Path) -> set[str]:
+    if output_csv.exists():
+        with output_csv.open("r", encoding="utf-8", newline="") as source:
+            reader = csv.DictReader(source)
+            dresses = list(reader)
+        image_ids = {row["image_id"] for row in dresses}
+        if len(dresses) != EXPECTED_DRESS_ROWS or len(image_ids) != EXPECTED_DRESS_IMAGES:
+            raise RuntimeError(f"Unexpected existing dresses subset: {output_csv}")
+        return image_ids
+
     with train_csv.open("r", encoding="utf-8", newline="") as source:
         reader = csv.DictReader(source)
         required_columns = {"image_id", "item_id", "category_name"}
@@ -112,8 +121,6 @@ def build_dresses_csv(train_csv: Path, output_csv: Path) -> set[str]:
             f"rows={len(dresses)}, unique_image_ids={len(image_ids)}"
         )
 
-    if output_csv.exists():
-        raise RuntimeError(f"Refusing to overwrite existing filtered CSV: {output_csv}")
     with output_csv.open("w", encoding="utf-8", newline="") as output:
         writer = csv.DictWriter(output, fieldnames=reader.fieldnames)
         writer.writeheader()
