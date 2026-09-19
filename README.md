@@ -269,6 +269,8 @@
 
 - Python dependency: 기본 이미지에 없는 패키지는 repository의 `requirements.txt` 또는 `pyproject.toml`로 버전을 관리하고 pod에서 설치. 환경이 충분히 안정화되기 전에는 custom Docker image를 별도로 만들지 않음.
 
+- Archive download: GLAMI-1M 800px archive는 `aria2c`의 16개 병렬 연결로 내려받음. Pod에서 `apt-get update && apt-get install -y aria2`를 한 번 실행한 뒤 downloader를 실행.
+
 - Pod 관리: 현재는 RunPod UI로 생성/시작/중지/삭제. 반복 작업이 많아질 경우에만 `runpodctl`/`env/pod.sh` 자동화를 추가.
 
 - Jupyter/포트: 기본적으로 사용하지 않음. Web terminal/SSH 중심으로 사용하고, 필요한 경우에만 포트를 명시적으로 연다.

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import shutil
-import urllib.request
+import subprocess
 from pathlib import Path
 
 from huggingface_hub import snapshot_download
@@ -26,10 +26,12 @@ def download_file(url: str, destination: Path) -> None:
         raise RuntimeError(f"Refusing to overwrite existing checkpoint: {destination}")
     temporary = destination.with_suffix(destination.suffix + ".part")
     try:
-        with urllib.request.urlopen(url) as response, temporary.open("wb") as output:
-            shutil.copyfileobj(response, output, length=1024 * 1024)
+        subprocess.run(
+            ["curl", "--fail", "--location", "--retry", "5", "--output", str(temporary), url],
+            check=True,
+        )
         temporary.replace(destination)
-    except Exception:
+    except subprocess.CalledProcessError:
         temporary.unlink(missing_ok=True)
         raise
 
