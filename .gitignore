@@ -22,6 +22,9 @@ venv/
 .env.*
 !.env.example
 
+# Local background task logs
+*.local.*.log
+
 # Editors and operating systems
 .vscode/
 .idea/
