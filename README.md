@@ -47,7 +47,7 @@
 
 핵심 아이디어: **두 원피스의 실루엣을 같은 크기의 정사각형 틀에 맞춰 놓고, 겹치는 비율(IoU)을 직접 재는 것.** 별도의 통계적 형태 기술자(Hu moment 등)나 근사 최근접 탐색 라이브러리(faiss) 없이, 마스크를 정규화된 크기로 리사이즈한 뒤 곧바로 픽셀 단위로 비교한다 — 구현이 단순하고 결과를 눈으로 바로 검증할 수 있다.
 
-1. **마스크 추출**: Grounded-SAM(Grounding DINO + SAM)으로 사용 대상 이미지(train 2,000장 규모 + test 100장)에 대해 원피스 영역 binary mask + bbox 추출 → `data/masks/`. 검출 실패분은 `failed.csv`에 기록하고 건너뛴다
+1. **마스크 추출**: Grounded-SAM(Grounding DINO + SAM)으로 사용 대상 이미지(train 4,000장 규모 + test 100장)에 대해 원피스 영역 binary mask + bbox 추출 → `data/masks/`. 검출 실패분은 `failed.csv`에 기록하고 건너뛴다
 
    - **2단계 처리 (2026-09-19 확정)**: Grounding DINO로 박스를 검출한 뒤, 그 박스를 **원본 해상도 좌표로 환산해 원본에서 크롭한 다음 SAM에 입력**하고, 나온 마스크를 원본 전체 좌표계에 되붙인다. test 이미지가 Pexels 원본(최대 3648x5472)이고 인물이 프레임에서 작게 찍힌 거리 샷이 많아, 통째로 축소해 넣으면 마스크 품질이 떨어지기 때문. train(800x800)에서는 크롭 단계가 사실상 항등이라 train/test가 같은 코드 경로를 쓴다.
 
@@ -65,7 +65,7 @@
 
 4. **top-K 선택**: anchor별로 IoU가 가장 높은 상위 K개(K=50)를 후보로 남김.
 
-5. **Threshold 결정 (스팟체크, 2026-09-19 확정)**: 골드셋이 없으므로 IoU 점수대별로 샘플을 뽑아 육안 비교. **하한 0.70 / 상한 0.97**로 확정 — 0.7 미만은 실루엣이 실제로 다른 사례가 섞이고, 0.97 이상은 동일 사진이 다른 image_id로 재등장하는 near-duplicate가 지배적이었음. 근거와 샘플은 `discussion_summary.md` 참고.
+5. **Threshold 결정 (스팟체크, 2026-09-19 확정, 이후 재조정)**: 골드셋이 없으므로 IoU 점수대별로 샘플을 뽑아 육안 비교. 1차로 하한 0.70 / 상한 0.97을 확정했으나, **최종적으로 하한 0.90 / 상한 0.95로 재조정** — 0.9~0.95 구간이 실루엣 일치도가 가장 높고 명백히 다른 상품인 "가장 좋은 품질의 positive"였기 때문. 대신 후보 anchor 커버리지가 크게 줄어(2,000장 기준 1,906→538개) train 이미지 규모를 2,000 → 4,000장으로 늘려 anchor 수를 보충(1,128개). 근거와 샘플은 `discussion_summary.md` 참고.
 
 6. **출력**: `data/pairs/mined_pairs.csv` (anchor_image_id, positive_image_id, iou_score)
 
@@ -93,13 +93,13 @@
 
   - Teacher: anchor 이미지의 masked global crop **1장만** 처리 (target 분포 생성)
 
-  - Student: 아래 6장 처리 (teacher와 합쳐 총 7 forward pass)
-
-    - anchor의 masked global crop + photometric augmentation 1장 (same-instance consistency)
+  - Student: 아래 5장 처리 (teacher와 합쳐 총 6 forward pass, 2026-09-19 수정)
 
     - mined positive(다른 item, 유사 실루엣)의 masked global crop 1장 (cross-instance 신호의 핵심)
 
     - **boundary-anchored local crop** 4장 — anchor 2장 + positive 2장 (아래 상세)
+
+  - **anchor의 masked global crop + photometric augmentation view는 제외** (2026-09-19 확정) — teacher가 보는 anchor global crop과 색조 차이만 있어 사실상 거의 같은 입력. student가 이 둘을 구분 없이 맞히는 게 너무 쉬워 collapse로 가는 지름길이 될 위험이 큼. same-instance consistency 신호 없이 cross-instance(positive) + local crop만으로 학습
 
   - 마스크 추출(1회성 전처리) 이후로는 순수 crop/augmentation 연산만 필요 — GPU 부담이 크지 않음
 
@@ -219,7 +219,7 @@
 
         - base.py : LightningModule 추상 클래스
 
-        - self_distill.py : student/teacher EMA, 7-view 학습 스텝(anchor global + positive global + local 4), collapse 로깅
+        - self_distill.py : student/teacher EMA, 6-view 학습 스텝(teacher anchor global + student: positive global + local 4), collapse 로깅
 
     - tools
 
@@ -239,7 +239,7 @@
 
         - transforms.py : crop / zero-fill / boundary-anchored local-crop 연산
 
-    train.py; 모델 학습, collapse 모니터링 로깅, 고정 쿼리 top-10 트래킹 — mined pair 기반 7-view 구조로 재구현 필요
+    train.py; 모델 학습, collapse 모니터링 로깅, 고정 쿼리 top-10 트래킹 — mined pair 기반 6-view 구조로 재구현 필요
 
     eval.py ;
 
@@ -329,7 +329,7 @@
 
         - GLAMI-1M 800x800 버전; category_name = dresses
 
-        - unique image_id 기준 dedup으로 26,326장 확보. **단, 이번 baseline에서는 그 중 무작위 2,000장 규모만 사용** (2026-09-19 확정 — 시간 제약. 마스크 추출은 재실행 시 기존 결과를 건너뛰므로 필요해지면 그때 추가 생성)
+        - unique image_id 기준 dedup으로 26,326장 확보. **단, 이번 baseline에서는 그 중 무작위 4,000장 규모만 사용** (2026-09-19 확정 — 시간 제약. threshold를 0.90~0.95로 좁히면서 anchor 커버리지 보충을 위해 2,000 → 4,000으로 증량. 마스크 추출은 재실행 시 기존 결과를 건너뛰므로 필요해지면 그때 추가 생성)
 
         - item_id 레벨 텍스트 메타데이터는 image-to-image 과제라 불필요. 단 near-duplicate 제외용으로 `name` 컬럼만 사용
 
@@ -371,7 +371,7 @@
 
 4) 실험 결과 도출 — 대기
 
-   - src/train.py 는 mined pair 기반 7-view 구조 + LoRA로 재구현 필요
+   - src/train.py 는 mined pair 기반 6-view 구조 + LoRA로 재구현 필요
 
    - eval.py/eval.sh - test 데이터(100장)
 

@@ -21,12 +21,24 @@ IoU 구간별로 anchor-positive 이미지 쌍을 6~8개씩 뽑아 육안 비교
 | 0.95–0.97 | 여전히 다른 상품 (24쌍뿐), 실루엣만 매우 유사 |
 | 0.97–1.0 | **동일 사진의 재등장** 지배적 — 같은 모델·포즈·드레스가 다른 image_id로 중복 |
 
-**확정 threshold: 하한 0.70 / 상한 0.97** (2026-09-19)
+**1차 확정 threshold: 하한 0.70 / 상한 0.97** (2026-09-19)
 
 - 하한 0.70: 0.6–0.7 구간의 애매함을 배제하고, 0.7부터 일관되게 실루엣이 닮은 지점을 채택
 - 상한 0.97: 그 이상은 동일 사진 재등장(near-duplicate)이 지배적이라 컷
 
-적용 결과: candidates 99,978 → mined_pairs 86,114 (`data/pairs/mined_pairs.csv`), anchor 1,906/2,000이 최소 1개 이상의 positive 확보 (94개 anchor는 이 서브셋 안에서 0.70 이상 후보가 없어 anchor로는 사용 불가 — 다른 anchor의 positive로는 여전히 등장 가능).
+적용 결과: candidates 99,978 → mined_pairs 86,114, anchor 1,906/2,000이 최소 1개 이상의 positive 확보.
+
+## 최종 재조정: 하한 0.90 / 상한 0.95 (2026-09-19)
+
+View 파이프라인 sanity check(7-view) 리뷰 중, "anchor + photometric aug" student view를 제외하기로 하면서 (teacher의 anchor global crop과 거의 동일해 collapse로 가는 지름길이 될 위험) positive 쪽 신호 품질에 더 신경 쓰게 됨. 스팟체크에서 0.9~0.95 구간이 "실루엣 일치도 최상 + 명백히 다른 상품"으로 가장 좋은 품질이었으므로, **범위를 0.90~0.95로 좁혀 최고 품질 positive만 사용**하기로 확정.
+
+- 트레이드오프: anchor 커버리지가 크게 감소 (2,000장 기준 1,906/2,000 → 538/2,000, 27%)
+- 보완: train 서브셋을 2,000 → **4,000장**으로 증량 (마스크 추출은 기존 결과를 건너뛰므로 2,000장만 추가 처리)
+- 최종 결과 (4,000장 기준): candidates 199,882 → **mined_pairs 15,940** (`data/pairs/mined_pairs.csv`), anchor **1,128 / 3,999**(28%)가 최소 1개 이상의 positive 확보
+
+## 6-view 구성으로 축소
+
+원안 7-view(teacher 1 + student: anchor+aug, positive, local×4)에서 **anchor+aug를 제외**한 6-view(teacher 1 + student: positive, local×4)로 확정. teacher가 보는 anchor global crop과 색조만 다른 입력을 student가 맞히는 건 사실상 자명한 과제라 same-instance consistency 신호의 가치가 낮고, collapse로 가는 지름길이 될 위험이 크다고 판단.
 
 ## 실루엣 정의 문구 정정
 
