@@ -64,7 +64,7 @@ def main() -> None:
 
     trainer = pl.Trainer(
         default_root_dir=run_dir,
-        logger=pl.loggers.CSVLogger(save_dir=run_dir, name="logs"),
+        logger=pl.loggers.TensorBoardLogger(save_dir=run_dir, name="logs"),
         callbacks=callbacks,
         **cfg["trainer"],
     )

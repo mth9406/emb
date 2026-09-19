@@ -1,0 +1,42 @@
+# First real (non-smoke) run, budgeted to finish within ~1 hour on one L40S.
+# batch_size=8 verified at ~29GB/44GB peak memory (batch=16 OOMs) and
+# ~0.98s/step; max_steps picked so training + periodic checkpoint/retrieval
+# overhead (~43s per occurrence, 10 occurrences) stays under ~56 minutes.
+data:
+  image_dir: /workspace/emb/data/raw/images-800px
+  mask_dir: /workspace/emb/data/masks
+  mined_pairs_csv: /workspace/emb/data/pairs/mined_pairs.csv
+  image_size: 384
+  batch_size: 8
+  num_workers: 4
+
+model:
+  lr: 1.0e-4
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.1
+  momentum_start: 0.996
+  momentum_end: 1.0
+  student_temp: 0.1
+  teacher_temp_start: 0.04
+  teacher_temp_end: 0.07
+  teacher_temp_warmup_steps: 900
+  center_momentum: 0.9
+
+trainer:
+  max_steps: 3000
+  precision: bf16-mixed
+  log_every_n_steps: 10
+  accelerator: gpu
+  devices: 1
+
+fixed_query:
+  n_queries: 8
+  top_k: 5
+  bottom_k: 5
+  every_n_steps: 300
+
+checkpoint:
+  every_n_train_steps: 300
+
+run_name: run_1h
