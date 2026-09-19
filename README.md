@@ -367,14 +367,16 @@
 
      - (3) 임베딩 2D 투영 비교는 제외 (2026-09-19 확정, (1)(2)로 충분하다고 판단)
 
-3) File structure 구체화 — 확정된 마이닝/crop 방식 반영 완료 (본 문서), src/ 구현은 재작업 필요 (extract_masks.py, mine_pairs.py, shape_descriptors.py, view_dataset.py 신규/수정)
+3) File structure 구체화 — **완료.** 확정된 마이닝/crop 방식 반영(본 문서), `src/dataset`, `src/tools`, `src/modules`, `src/func`, `src/model`, `train.py` 전부 구현 완료
 
-4) 실험 결과 도출 — 대기
+4) 실험 결과 도출 — **학습 파이프라인 구현 + smoke run 완료 (2026-09-19), 본 학습은 대기**
 
-   - src/train.py 는 mined pair 기반 6-view 구조 + LoRA로 재구현 필요
+   - `train.py` + `src/model/self_distill.py`: LoRA backbone + prototype head + DINO self-distillation, mined pair 기반 6-view 구조로 구현 완료
 
-   - eval.py/eval.sh - test 데이터(100장)
+   - `configs/self_distill_v1.yaml`로 300-step smoke run 실행 — crash/NaN 없음, entropy가 collapse 없이 유지됨, 체크포인트·fixed-query 검색 결과 저장 확인 (`experiments/smoke_v1/`). **품질 확보용 본 학습(에폭 수, 배치 크기 등)은 별도 논의 후 진행 예정** — 이 smoke run 자체는 실제 체크포인트가 아님
 
-   - notebooks/emb_analysis: SFT 전 SigLIP2 vs Tianmu-MERE embedding PCA 비교 완료, SFT 후 체크포인트는 본 학습 완료 후 추가 예정
+   - eval.py/eval.sh - test 데이터(100장), 본 학습 완료 후 착수
+
+   - notebooks/emb_analysis: SFT 전 SigLIP2 vs Tianmu-MERE shape recall 비교 완료 (M5, 위 참고). SFT 후 체크포인트는 본 학습 완료 후 추가 예정
 
 유의 사항: 절대 미루어 짐작해서 코드를 작성하지 말 것. 명확하지 않은 부분은 항상 논의 후 결정 및 구현.
