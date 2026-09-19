@@ -89,6 +89,8 @@
 
   - L40S(48GB) 단일 GPU 기준: backbone이 대부분 freeze되어 있어 메모리 부담이 크게 줄어듦. bf16 사용, gradient checkpointing은 batch size 확보를 위해 필요 시 적용
 
+  - **입력 정규화 버그 수정 (2026-09-19)**: view 파이프라인은 `ToTensor()`로 [0,1] 범위 텐서를 만드는데, SigLIP2 pretrained 가중치는 mean=0.5/std=0.5([-1,1] 범위) 입력을 전제로 학습됨. `backbone.py`에서 `pixel_values*2-1`로 재정규화하도록 고침 — 이 버그가 있으면 거의 다 freeze된 backbone이 기대하지 않는 입력 분포를 받아 LoRA만으로는 보정이 안 됨. 실제 1시간 학습 실행 직전에 발견해서, 버그 있는 상태의 체크포인트는 만들어지지 않음
+
 - **View 구성** (mined pair 기반으로 재설계, 확정):
 
   - Teacher: anchor 이미지의 masked global crop **1장만** 처리 (target 분포 생성)
@@ -241,13 +243,17 @@
 
     train.py; 모델 학습, collapse 모니터링 로깅, 고정 쿼리 top-10 트래킹 — mined pair 기반 6-view 구조로 재구현 필요
 
-    eval.py ;
+    eval.py ; **구현 완료 (2026-09-19), 체크포인트 확보 후 실행 예정**
 
-        - fine-tuned SigLIP2, SigLIP2, Tianmu-MERE 비교
+        - fine-tuned SigLIP2, SigLIP2(base), Tianmu-MERE 비교. **정량은 train corpus에서만** (test는 자체 mined-pair가 없어 모집단으로 부적합 — 100장으로는 IoU 0.90~0.95 구간에 걸리는 쌍이 통계적으로 불안정)
 
-        - 주요 쿼리의 모델 별 Top-10 검색 결과 (train subset, test) 저장.
+        - **입력 형태(원본 vs masked) 효과를 분리**: 3개 모델 모두 raw/masked 두 조건으로 Recall@20을 계산해서 "masking 자체의 효과"와 "masking + SFT의 효과"를 구분 (2026-09-19 확정 — M5에서 미뤄뒀던 결정)
 
-        - 개선된 사례와 악화된 사례 분석
+        - 주요 쿼리(고정 8개, train mined_pairs 기준)의 모델 3종 Top-5/Bottom-5 검색 결과를 나란히 저장 — 각 결과에 query 대비 cosine similarity와 shape-IoU를 함께 표기 (`src/tools/query_report.py`)
+
+        - 개선된 사례와 악화된 사례: anchor별 Recall@20 델타(fine-tuned − base SigLIP2, 둘 다 masked)가 가장 큰/작은 쿼리를 뽑아 위와 동일한 방식으로 시각화
+
+        - test(100장)는 **정성 확인만**: test 이미지를 query로 train corpus를 검색하는 cross-domain 확인. IoU는 test 이미지의 canonical mask를 즉석에서 계산해서 비교 (test는 mined-pair 캐시에 없으므로)
 
         - 유사도를 정량적으로 평가가 가능하다면 정량화된 지표를 train / test 에 대해 report. **핵심 지표는 shape Recall@20** (`shape_recall.py` 재사용) — baseline(SigLIP2 0.134 / Tianmu-MERE 0.115, random 0.005)과 SFT 후 값을 나란히 비교 (2026-09-19 확정)
 

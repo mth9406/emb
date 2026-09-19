@@ -9,7 +9,7 @@ from pathlib import Path
 
 import numpy as np
 
-from src.tools.retrieval import extract_embeddings, load_siglip2, load_tianmu
+from src.tools.retrieval import ImageIdDataset, extract_embeddings, load_siglip2, load_tianmu
 
 DATA_ROOT = Path("/workspace/emb/data")
 IMAGE_DIR = DATA_ROOT / "raw/images-800px"
@@ -23,10 +23,11 @@ def main() -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     np.save(OUT_DIR / "image_ids.npy", np.array(image_ids))
 
+    dataset = ImageIdDataset(IMAGE_DIR, image_ids)
     for name, loader in [("siglip2", load_siglip2), ("tianmu", load_tianmu)]:
         print(f"embedding with {name}", flush=True)
         embed_fn = loader()
-        emb = extract_embeddings(embed_fn, IMAGE_DIR, image_ids)
+        emb = extract_embeddings(embed_fn, dataset)
         np.save(OUT_DIR / f"{name}.npy", emb.numpy())
         print(f"  -> {emb.shape}", flush=True)
 

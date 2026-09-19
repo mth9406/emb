@@ -24,23 +24,29 @@ def load_proxy_positives(mined_pairs_csv: Path) -> dict[str, set[str]]:
     return positives
 
 
-def recall_at_n(embeddings: np.ndarray, image_ids: list[str], positives: dict[str, set[str]], n: int) -> dict:
+def per_anchor_recall(
+    embeddings: np.ndarray, image_ids: list[str], positives: dict[str, set[str]], n: int
+) -> dict[str, float]:
     id_to_idx = {img_id: i for i, img_id in enumerate(image_ids)}
     emb = torch.from_numpy(embeddings)
     top_idx, _ = cosine_topk(emb, n)
 
-    recalls = []
+    recalls = {}
     for anchor_id, pos_ids in positives.items():
         if anchor_id not in id_to_idx:
             continue
         i = id_to_idx[anchor_id]
         retrieved = {image_ids[j] for j in top_idx[i].tolist()}
-        recalls.append(len(retrieved & pos_ids) / len(pos_ids))
+        recalls[anchor_id] = len(retrieved & pos_ids) / len(pos_ids)
+    return recalls
 
+
+def recall_at_n(embeddings: np.ndarray, image_ids: list[str], positives: dict[str, set[str]], n: int) -> dict:
+    recalls = per_anchor_recall(embeddings, image_ids, positives, n)
     # expected recall for a random top-N draw = N / (corpus size - 1), independent of positive-set size
     n_total = len(image_ids) - 1
     return {
-        "mean_recall": float(np.mean(recalls)),
+        "mean_recall": float(np.mean(list(recalls.values()))),
         "random_baseline": n / n_total,
         "n_anchors": len(recalls),
         "n": n,
