@@ -1,0 +1,38 @@
+# Smoke run: verify the pipeline trains without collapsing, not a real checkpoint.
+data:
+  image_dir: /workspace/emb/data/raw/images-800px
+  mask_dir: /workspace/emb/data/masks
+  mined_pairs_csv: /workspace/emb/data/pairs/mined_pairs.csv
+  image_size: 384
+  batch_size: 8
+  num_workers: 4
+
+model:
+  lr: 1.0e-4
+  lora_r: 16
+  lora_alpha: 32
+  lora_dropout: 0.1
+  momentum_start: 0.996
+  momentum_end: 1.0
+  student_temp: 0.1
+  teacher_temp_start: 0.04
+  teacher_temp_end: 0.07
+  teacher_temp_warmup_steps: 300
+  center_momentum: 0.9
+
+trainer:
+  max_steps: 300
+  precision: bf16-mixed
+  log_every_n_steps: 10
+  accelerator: gpu
+  devices: 1
+
+fixed_query:
+  n_queries: 8
+  top_k: 10
+  every_n_steps: 100
+
+checkpoint:
+  every_n_train_steps: 100
+
+run_name: smoke_v1
