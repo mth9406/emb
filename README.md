@@ -49,9 +49,19 @@
 
 1. **마스크 추출**: Grounded-SAM(Grounding DINO + SAM)으로 전체 26,326장에 대해 원피스 영역 binary mask + bbox 추출 → `data/masks/`
 
+   - **2단계 처리 (2026-09-19 확정)**: Grounding DINO로 박스를 검출한 뒤, 그 박스를 **원본 해상도 좌표로 환산해 원본에서 크롭한 다음 SAM에 입력**하고, 나온 마스크를 원본 전체 좌표계에 되붙인다. test 이미지가 Pexels 원본(최대 3648x5472)이고 인물이 프레임에서 작게 찍힌 거리 샷이 많아, 통째로 축소해 넣으면 마스크 품질이 떨어지기 때문. train(800x800)에서는 크롭 단계가 사실상 항등이라 train/test가 같은 코드 경로를 쓴다.
+
 2. **Canonical mask 생성**: 마스크를 bbox로 크롭 → 정사각형에 가운데 정렬로 padding(letterbox) → 64x64로 resize한 binary mask 생성. 이 한 번의 리사이즈로 크기·위치 차이가 자동으로 제거됨 (별도 descriptor 계산 불필요). 회전은 정규화하지 않음 — 제품 사진이 대체로 정면·직립으로 촬영된다는 전제 (한계로 기록, 회전된/뒤집힌 착장은 이번 baseline에서 다루지 않음).
 
-3. **전체 쌍 IoU 계산**: 64x64 canonical mask를 4096차원 이진 벡터로 펼친 뒤, `intersection = masks @ masks.T`(행렬곱), `union = area_i + area_j - intersection`으로 전체 쌍의 IoU를 한 번에 계산 (GPU 행렬곱 1회, L40S 1장으로 충분). **같은 item_id(동일 상품의 색상 변형 등)는 후보에서 제외** — cross-instance 신호를 보장하기 위함(같은 상품의 다른 이미지가 섞이면 학습이 지나치게 쉬워짐).
+3. **전체 쌍 IoU 계산**: 64x64 canonical mask를 4096차원 이진 벡터로 펼친 뒤, `intersection = masks @ masks.T`(행렬곱), `union = area_i + area_j - intersection`으로 전체 쌍의 IoU를 계산 (행 청크 단위로 나눠 청크마다 top-K만 남김, L40S 1장으로 충분).
+
+   - **near-duplicate 제외 (2026-09-19 수정)**: 원안은 "같은 item_id 제외"였으나 실측 결과 item_id는 이미지당 정확히 1개(item_id 29,350 : unique image 26,326, 같은 이미지가 geo별 리스팅으로 여러 item_id에 중복 등장)라 **제외해도 아무것도 걸러지지 않는 no-op**이었음. 실제로 막아야 할 대상(동일 상품의 색상 변형)은 서로 다른 image_id로 존재하므로 아래 두 규칙을 대신 적용:
+
+     - `name` 문자열이 완전히 일치하는 이미지 그룹끼리 후보에서 제외 (1,407그룹 / 4,153장). 언어별 텍스트 휴리스틱 없이 완전일치만 사용해 별도 가정을 만들지 않음.
+
+     - IoU가 상한을 넘는 쌍 제외 (이름이 달라도 실루엣이 사실상 동일한 near-duplicate 차단). 상한값은 5번 스팟체크에서 확정.
+
+   - 목적은 원안과 동일 — cross-instance 신호 보장 (같은 상품의 다른 사진이 섞이면 학습이 지나치게 쉬워짐).
 
 4. **top-K 선택**: anchor별로 IoU가 가장 높은 상위 K개(K=50)를 후보로 남김.
 
@@ -161,9 +171,13 @@
 
         - GLAMI-1M-dresses-train.csv : category_name=dresses 필터링 결과 (29,350 rows, unique image_id 26,326)
 
-        - images-800px/{image_id}.jpg : 위 unique image_id에 해당하는 800x800 원본 이미지
+        - images-800px/{image_id}.jpg : 위 unique image_id에 해당하는 800x800 원본 이미지 (train dresses 26,326장만, test와 분리)
 
-    - masks/{image_id}.png : Grounded-SAM 추출 binary mask (+ bbox는 index.csv에 기록)
+        - images-800px-test/ : test 100장 원본(`NNN_{pexels_id}.jpg`) + manifest.json + ATTRIBUTION.md (train 폴더와 물리적으로 분리)
+
+    - masks/{image_id}.png : Grounded-SAM 추출 binary mask, 원본 좌표계 (+ bbox/det_score/mask_area_ratio는 index.csv에 기록). 검출 실패분은 failed.csv에 따로 기록
+
+    - masks-test/ : test 100장의 마스크 (train과 분리, 전수 조사 대상)
 
     - descriptors/canonical_masks.npy : image_id별 64x64 canonical(letterbox+resize) binary mask 모음
 
@@ -171,13 +185,13 @@
 
     - GLAMI-1M 공식 human-labeled test split은 사용하지 않음 (train.csv만 사용)
 
-    - test data (100 장 원피스 사진, data/raw/images-800px 에 저장함) — 제공 완료. 학습 및 validation 에는 절대 사용 금지, mask 추출 결과는 전수 조사 대상.
+    - test data (100 장 원피스 사진, data/raw/images-800px-test/ 에 저장함, train과 폴더 분리됨 — 2026-09-19) — 제공 완료. 학습 및 validation 에는 절대 사용 금지, mask 추출 결과는 전수 조사 대상.
 
 - ckpts
 
     - Tianmu-MERE/, siglip2-so400m-patch14-384/ : 비교 대상 모델
 
-    - grounding-dino/, sam/ : 마스크 추출 파이프라인용
+    - grounding-dino/, sam/ : 마스크 추출 파이프라인용. 둘 다 HF transformers 포맷 (`IDEA-Research/grounding-dino-base`, `facebook/sam-vit-large`) — SAM 원본 `.pth`는 transformers로 바로 로드할 수 없어 HF 스냅샷으로 대체 (2026-09-19)
 
 - configs
 
@@ -323,7 +337,7 @@
 
     - test dataset:
 
-        - 100장 원피스 사진, data/raw/images-800px 에 저장 — 제공 완료.
+        - 100장 원피스 사진, data/raw/images-800px-test/ 에 저장 (train 폴더와 분리) — 제공 완료.
 
         - 학습 및 validation 에는 절대 사용 금지
 
@@ -333,7 +347,7 @@
 
 0) 환경 구축 — RunPod L40S 1장 + 기본 PyTorch 2.8.0 image + Network Volume(/workspace) 구성 및 GPU/mount 검증 완료
 
-1) 데이터 준비 — `scripts/download_assets.sh`로 GLAMI-1M dresses와 checkpoint를 `/workspace/emb/`에 다운로드. 800px archive는 한 파일씩 처리하고 dresses 이미지만 보존한다. 마스크 추출·descriptor 계산·pair 마이닝은 새 파이프라인으로 수행 필요
+1) 데이터 준비 — **원본 확보 완료 (2026-09-19)**: train 이미지 26,326장(`images-800px/`), test 100장(`images-800px-test/`, 분리 저장), `GLAMI-1M-dresses-train.csv`(29,350 rows), checkpoint 4종. 마스크 추출·descriptor 계산·pair 마이닝은 새 파이프라인으로 수행 필요 (2번의 선행 조건)
 
 2) 유사도 정의 — 속성 기반 실루엣 축 확정, positive pair 생성 방식(shape-descriptor 마이닝) 확정, boundary-anchored local crop 확정
 

@@ -1,1 +1,10 @@
-huggingface_hub==0.30.2
+# torch / torchvision are provided by the RunPod base image (2.8.0+cu128); do not pin them here.
+huggingface_hub==1.32.0
+transformers==5.17.0
+accelerate==1.15.0
+safetensors==0.8.0
+pytorch-lightning==2.6.6
+peft==0.21.0
+pandas==3.0.6
+matplotlib==3.11.2
+scikit-learn==1.9.1

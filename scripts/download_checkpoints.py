@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import shutil
-import urllib.request
 from pathlib import Path
 
 from huggingface_hub import snapshot_download
@@ -18,19 +17,6 @@ def download_huggingface_snapshot(repo_id: str, destination: Path, **kwargs: obj
         snapshot_download(repo_id=repo_id, local_dir=destination, **kwargs)
     except Exception:
         shutil.rmtree(destination)
-        raise
-
-
-def download_file(url: str, destination: Path) -> None:
-    if destination.exists():
-        raise RuntimeError(f"Refusing to overwrite existing checkpoint: {destination}")
-    temporary = destination.with_suffix(destination.suffix + ".part")
-    try:
-        with urllib.request.urlopen(url) as response, temporary.open("wb") as output:
-            shutil.copyfileobj(response, output, length=1024 * 1024)
-        temporary.replace(destination)
-    except Exception:
-        temporary.unlink(missing_ok=True)
         raise
 
 
@@ -60,11 +46,10 @@ def main() -> None:
             "vocab.txt",
         ],
     )
-    sam_dir = ckpt_root / "sam"
-    sam_dir.mkdir()
-    download_file(
-        "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_l_0b3195.pth",
-        sam_dir / "sam_vit_l_0b3195.pth",
+    download_huggingface_snapshot(
+        "facebook/sam-vit-large",
+        ckpt_root / "sam",
+        ignore_patterns=["*.bin", "*.h5", "*.msgpack"],
     )
 
 
