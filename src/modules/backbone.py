@@ -25,5 +25,13 @@ class LoRAVisionBackbone(nn.Module):
         self.vision_model = get_peft_model(vision_model, lora_config)
 
     def forward(self, pixel_values: torch.Tensor) -> torch.Tensor:
-        pooled = self.vision_model(pixel_values=pixel_values.to(torch.bfloat16)).pooler_output
+        """pixel_values: (B,3,H,W) in [0,1] (e.g. from torchvision ToTensor).
+
+        SigLIP2's own preprocessor normalizes to mean=0.5/std=0.5 (see
+        siglip2-so400m-patch14-384/preprocessor_config.json), so inputs must be
+        rescaled to [-1,1] here -- the frozen pretrained weights expect that
+        range and LoRA alone won't compensate for feeding [0,1] instead.
+        """
+        normalized = pixel_values * 2.0 - 1.0
+        pooled = self.vision_model(pixel_values=normalized.to(torch.bfloat16)).pooler_output
         return pooled.float()
