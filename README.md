@@ -239,6 +239,12 @@
 
 - scripts
 
+    - download_glami_dresses.py : 800px archive를 하나씩 받아 dresses 이미지만 추출
+
+    - download_checkpoints.py : SigLIP2, Tianmu-MERE, Grounding DINO, SAM checkpoint 다운로드
+
+    - download_assets.sh : RunPod Network Volume에서 두 downloader를 순서대로 실행
+
     - extract_masks.sh ; data/masks 생성
 
     - mine_pairs.sh ; data/descriptors, data/pairs 생성
@@ -327,7 +333,7 @@
 
 0) 환경 구축 — RunPod L40S 1장 + 기본 PyTorch 2.8.0 image + Network Volume(/workspace) 구성 및 GPU/mount 검증 완료
 
-1) 데이터 준비 — GLAMI-1M dresses 필터링/다운로드, 체크포인트 다운로드는 완료. 마스크 추출·descriptor 계산·pair 마이닝은 새 파이프라인으로 재수행 필요
+1) 데이터 준비 — `scripts/download_assets.sh`로 GLAMI-1M dresses와 checkpoint를 `/workspace/emb/`에 다운로드. 800px archive는 한 파일씩 처리하고 dresses 이미지만 보존한다. 마스크 추출·descriptor 계산·pair 마이닝은 새 파이프라인으로 수행 필요
 
 2) 유사도 정의 — 속성 기반 실루엣 축 확정, positive pair 생성 방식(shape-descriptor 마이닝) 확정, boundary-anchored local crop 확정
 
