@@ -36,6 +36,23 @@ View 파이프라인 sanity check(7-view) 리뷰 중, "anchor + photometric aug"
 - 보완: train 서브셋을 2,000 → **4,000장**으로 증량 (마스크 추출은 기존 결과를 건너뛰므로 2,000장만 추가 처리)
 - 최종 결과 (4,000장 기준): candidates 199,882 → **mined_pairs 15,940** (`data/pairs/mined_pairs.csv`), anchor **1,128 / 3,999**(28%)가 최소 1개 이상의 positive 확보
 
+## Shape-blindness 진단 결과 (2026-09-19)
+
+`src/tools/embed_corpus.py`로 SigLIP2(SFT 전)·Tianmu-MERE 원본 이미지 임베딩을 추출(train 3,999장), `src/tools/shape_recall.py`로 Recall@20 계산.
+
+| | Recall@20 | random baseline | 배율 |
+|---|---|---|---|
+| SigLIP2 | 0.134 | 0.005 | 27x |
+| Tianmu-MERE | 0.115 | 0.005 | 23x |
+
+**당초 가설("pretrained가 실루엣을 전혀 못 잡는다")은 틀렸음.** 두 모델 모두 random보다 20배 이상 높은 recall을 보여 부분적인 실루엣 신호를 이미 갖고 있다. 정성 그리드에서도 shape-IoU top-5와 겹치는 검색 결과가 종종 관찰됨.
+
+**프레임 수정**: "완전히 shape-blind" → **"약하게만 잡음, SFT로 강화 필요"**. 13%대 recall은 개선 여지가 뚜렷하므로 fine-tuning 정당성은 유지되지만, 주장을 정확하게 표현.
+
+**후속 결정**: SFT 완료 후 동일한 Recall@20을 재측정해 이 baseline과 나란히 비교 — `eval.py`의 핵심 정량 지표로 채택 (2026-09-19).
+
+**범위 제외**: 임베딩 2D 투영(PCA/UMAP) 비교는 진행하지 않음 — 질적 그리드 + 정량 recall 두 가지로 이미 결론이 나와 추가 정보 가치가 낮다고 판단.
+
 ## 6-view 구성으로 축소
 
 원안 7-view(teacher 1 + student: anchor+aug, positive, local×4)에서 **anchor+aug를 제외**한 6-view(teacher 1 + student: positive, local×4)로 확정. teacher가 보는 anchor global crop과 색조만 다른 입력을 student가 맞히는 건 사실상 자명한 과제라 same-instance consistency 신호의 가치가 낮고, collapse로 가는 지름길이 될 위험이 크다고 판단.

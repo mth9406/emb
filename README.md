@@ -151,15 +151,15 @@
 
     - view_sanity_check.ipynb : positive pair(anchor-positive) 및 local/global view 시각화 샘플 생성 — train, test(100장) 양쪽 모두 확인. test는 원피스 mask 추출 결과를 전수 조사(직접 확인) 대상으로 별도 정리
 
-    - emb_analysis/ : SigLIP2(SFT 전)·Tianmu-MERE vision embedding PCA 시각화 (view 클러스터링 확인용, SFT 체크포인트 나오면 확장 예정)
+    - emb_analysis/ : SigLIP2(SFT 전)·Tianmu-MERE vision embedding 진단 (SFT 체크포인트 나오면 SFT 후 결과와 나란히 비교하도록 확장 예정)
 
-      - baseline shape-blindness 진단 (pretrained model이 우리가 정의한 실루엣 유사성을 못 잡는다는 것을 보이는 자료, 세 가지 조합):
+      - baseline shape 진단 (2026-09-19 결과 반영, "완전히 shape-blind"가 아니라 "약하게만 잡음 → SFT로 강화" 프레임으로 수정):
 
-        1. **질적 비교 그리드**: 실루엣이 뚜렷이 다른 카테고리(A라인/bodycon/맥시 등)에서 anchor 몇 개를 골라, 각 anchor에 대해 (a) mined_pairs.csv 기준 shape-IoU top-5, (b) SigLIP2 임베딩 cosine sim top-5, (c) Tianmu-MERE 임베딩 cosine sim top-5를 나란히 배치. shape-IoU 컬럼은 실루엣이 일치하는데 두 pretrained 모델 컬럼엔 색은 비슷하지만 실루엣이 다른 옷이 섞여 나오는 것을 눈으로 비교.
+        1. **질적 비교 그리드**: 실루엣이 뚜렷이 다른 카테고리(A라인/bodycon/맥시 등)에서 anchor 몇 개를 골라, 각 anchor에 대해 (a) mined_pairs.csv 기준 shape-IoU top-5, (b) SigLIP2 임베딩 cosine sim top-5, (c) Tianmu-MERE 임베딩 cosine sim top-5를 나란히 배치. shape-IoU top-5와 겹치는 검색 결과가 이미 종종 나온다 (완전한 우연은 아님).
 
-        2. **정량 지표 (shape recall)**: anchor별 mined_pairs.csv top-K(K=10)를 proxy positive로 두고, SigLIP2/Tianmu-MERE 임베딩 검색 결과 top-N(N=20) 안에 이 positive가 몇 개 들어오는지 Recall@N 계산. 무작위 N장 추출 시 기대 recall(거의 0)을 baseline으로 같이 표기 — anchor 수백 개 평균으로 모델별 막대그래프 1장.
+        2. **정량 지표 (shape recall)**: anchor별 mined_pairs.csv의 positive 전체를 proxy positive로 두고, SigLIP2/Tianmu-MERE 임베딩 검색 결과 top-N(N=20) 안에 이 positive가 몇 개 들어오는지 Recall@N 계산 (`src/tools/shape_recall.py`). 무작위 N장 추출 시 기대 recall(`N / (전체 - 1)`)을 baseline으로 같이 표기 — anchor 1,128개 평균으로 모델별 막대그래프 1장. **결과: SigLIP2 0.134 / Tianmu-MERE 0.115, random baseline 0.005 대비 각각 23~27배** — 완전히 못 잡는 건 아니고 약한 신호가 이미 있음. SFT 후 동일 지표로 재측정해 baseline과 나란히 비교하는 것이 eval.py의 핵심 정량 지표가 됨.
 
-        3. **임베딩 2D 투영 비교**: 동일 이미지 집합을 PCA/UMAP으로 투영한 뒤, (a) 실루엣 클러스터 색상 (b) 옷 색상 색상으로 각각 색칠한 두 장을 나란히 비교 — 색상 기준으로는 군집이 보이고 실루엣 기준으로는 군집이 흐려지는지 확인.
+        - 임베딩 2D 투영(PCA/UMAP) 비교는 **범위에서 제외** (2026-09-19 확정) — 위 두 가지로 이미 결론이 나와 추가 정보가 크지 않다고 판단.
 
         - retrieval.py, shape_descriptors.py, mined_pairs.csv를 그대로 재사용해서 만들 수 있어 별도 구현 최소화.
 
@@ -249,7 +249,7 @@
 
         - 개선된 사례와 악화된 사례 분석
 
-        - 유사도를 정량적으로 평가가 가능하다면 정량화된 지표를 train / test 에 대해 report.
+        - 유사도를 정량적으로 평가가 가능하다면 정량화된 지표를 train / test 에 대해 report. **핵심 지표는 shape Recall@20** (`shape_recall.py` 재사용) — baseline(SigLIP2 0.134 / Tianmu-MERE 0.115, random 0.005)과 SFT 후 값을 나란히 비교 (2026-09-19 확정)
 
 - scripts
 
@@ -359,13 +359,13 @@
 
      - 특히 test에서 원피스가 잘 추출되는지 확인할 예정이며, 100장이므로 추출된 원피스는 직접 전수 조사함.
 
-   - pretrained model(SigLIP2, Tianmu-MERE)이 우리가 정의한 shape 유사성을 잘 잡지 못한다는 것을 보이는 직관적 자료 생성 (`notebooks/emb_analysis`, 상세는 File structure 참고).
+   - pretrained model(SigLIP2, Tianmu-MERE)이 우리가 정의한 shape 유사성을 얼마나 못 잡는지 보이는 자료 생성 (`notebooks/emb_analysis`, 상세는 File structure 참고). **완료 (2026-09-19)** — 결과는 "완전히 못 잡음"이 아니라 "약하게만 잡음, SFT로 강화 필요"로 프레임 확정.
 
      - (1) anchor별 shape-IoU top-5 vs 두 모델 임베딩 top-5 검색 결과를 나란히 비교하는 질적 그리드
 
-     - (2) mined_pairs.csv top-K를 proxy positive로 둔 Recall@N vs random baseline 막대그래프 (정량)
+     - (2) mined_pairs.csv의 positive를 proxy positive로 둔 Recall@20 vs random baseline 막대그래프 (정량). SigLIP2 0.134 / Tianmu-MERE 0.115 vs random 0.005. **SFT 후에도 동일 방식으로 재측정해 baseline과 나란히 비교 — eval.py의 핵심 지표로 채택**
 
-     - (3) 임베딩 2D 투영을 실루엣 클러스터 색상 / 옷 색상으로 각각 칠해 비교
+     - (3) 임베딩 2D 투영 비교는 제외 (2026-09-19 확정, (1)(2)로 충분하다고 판단)
 
 3) File structure 구체화 — 확정된 마이닝/crop 방식 반영 완료 (본 문서), src/ 구현은 재작업 필요 (extract_masks.py, mine_pairs.py, shape_descriptors.py, view_dataset.py 신규/수정)
 
