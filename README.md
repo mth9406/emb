@@ -65,7 +65,7 @@
 
 4. **top-K 선택**: anchor별로 IoU가 가장 높은 상위 K개(K=50)를 후보로 남김.
 
-5. **Threshold 결정 (스팟체크)**: 골드셋이 없으므로, IoU 점수대별로(예: 0.5~0.6, 0.6~0.7, 0.7~0.8, 0.8+) 샘플을 몇 장씩 뽑아 실제 이미지를 육안으로 비교 → "이 정도 IoU부터는 실제로 실루엣이 비슷하다"고 납득되는 지점을 threshold로 채택하고 그 근거를 `discussion_summary.md`에 기록.
+5. **Threshold 결정 (스팟체크, 2026-09-19 확정)**: 골드셋이 없으므로 IoU 점수대별로 샘플을 뽑아 육안 비교. **하한 0.70 / 상한 0.97**로 확정 — 0.7 미만은 실루엣이 실제로 다른 사례가 섞이고, 0.97 이상은 동일 사진이 다른 image_id로 재등장하는 near-duplicate가 지배적이었음. 근거와 샘플은 `discussion_summary.md` 참고.
 
 6. **출력**: `data/pairs/mined_pairs.csv` (anchor_image_id, positive_image_id, iou_score)
 
