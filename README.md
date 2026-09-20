@@ -39,6 +39,11 @@ Expected  layout:
 
 `scripts/download_assets.sh` obtains the public base models and public GLAMI assets; download the final `.ckpt` from the Drive link above into `experiments/run_1h/checkpoints/` (or pass its own path to commands below).
 
+The Grounded-SAM detection/segmentation pair used for masking (`scripts/download_checkpoints.py`) is pulled from Hugging Face:
+
+- Grounding-DINO: [`IDEA-Research/grounding-dino-base`](https://huggingface.co/IDEA-Research/grounding-dino-base)
+- SAM: [`facebook/sam-vit-large`](https://huggingface.co/facebook/sam-vit-large)
+
 ## Reproduce preprocessing, training, and evaluation
 
 The training source is GLAMI-1M `category_name=dresses`. We use a deterministic random sample of 4,000 candidate images (`--limit 4000 --seed 0`); one segmentation failure leaves 3,999 images. The provided 100-image external test set is in `data/raw/images-800px-test/`, physically separated from training and never used for pair mining or fitting.
