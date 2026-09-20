@@ -17,8 +17,8 @@ PAIRS_DIR = Path("/workspace/emb/data/pairs")
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--lower", type=float, default=0.70)
-    parser.add_argument("--upper", type=float, default=0.97)
+    parser.add_argument("--lower", type=float, default=0.90)
+    parser.add_argument("--upper", type=float, default=0.95)
     args = parser.parse_args()
 
     with (PAIRS_DIR / "candidates.csv").open(encoding="utf-8", newline="") as f:
