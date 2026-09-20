@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import argparse
 import csv
-from pathlib import Path
 
-PAIRS_DIR = Path("/workspace/emb/data/pairs")
+from src.paths import DATA_ROOT
+
+PAIRS_DIR = DATA_ROOT / "pairs"
 
 
 def main() -> None:

@@ -11,9 +11,8 @@ from pathlib import Path
 import numpy as np
 import torch
 
+from src.paths import DATA_ROOT
 from src.tools.retrieval import cosine_topk
-
-DATA_ROOT = Path("/workspace/emb/data")
 
 
 def load_proxy_positives(mined_pairs_csv: Path) -> dict[str, set[str]]:

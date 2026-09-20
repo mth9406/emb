@@ -9,13 +9,12 @@ from __future__ import annotations
 
 import argparse
 import csv
-from pathlib import Path
 
 import numpy as np
 
+from src.paths import DATA_ROOT
 from src.tools.shape_descriptors import build_canonical_masks, pairwise_iou_topk
 
-DATA_ROOT = Path("/workspace/emb/data")
 MASK_DIR = DATA_ROOT / "masks"
 CSV_PATH = DATA_ROOT / "raw/GLAMI-1M-dresses-train.csv"
 DESCRIPTOR_DIR = DATA_ROOT / "descriptors"

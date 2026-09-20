@@ -16,8 +16,7 @@ import torch
 from PIL import Image, ImageOps
 from transformers import AutoModelForZeroShotObjectDetection, AutoProcessor, SamModel
 
-CKPT_ROOT = Path("/workspace/emb/ckpts")
-DATA_ROOT = Path("/workspace/emb/data")
+from src.paths import CKPT_ROOT, DATA_ROOT
 SPLITS = {
     "train": (DATA_ROOT / "raw/images-800px", DATA_ROOT / "masks"),
     "test": (DATA_ROOT / "raw/images-800px-test", DATA_ROOT / "masks-test"),

@@ -12,8 +12,7 @@ from torch.utils.data import DataLoader, Dataset
 
 from src.dataset.transforms import global_view
 from src.dataset.view_dataset import load_image, load_mask
-
-CKPT_ROOT = Path("/workspace/emb/ckpts")
+from src.paths import CKPT_ROOT
 
 
 class ImageIdDataset(Dataset):

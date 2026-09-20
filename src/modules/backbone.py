@@ -2,14 +2,14 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import torch
 from peft import LoraConfig, get_peft_model
 from torch import nn
 from transformers import AutoModel
 
-SIGLIP2_PATH = Path("/workspace/emb/ckpts/siglip2-so400m-patch14-384")
+from src.paths import CKPT_ROOT
+
+SIGLIP2_PATH = CKPT_ROOT / "siglip2-so400m-patch14-384"
 HIDDEN_SIZE = 1152
 
 

@@ -1,8 +1,8 @@
 # Base template. batch_size / precision are re-tuned per run after L40S memory checks.
 data:
-  image_dir: /workspace/emb/data/raw/images-800px
-  mask_dir: /workspace/emb/data/masks
-  mined_pairs_csv: /workspace/emb/data/pairs/mined_pairs.csv
+  image_dir: data/raw/images-800px
+  mask_dir: data/masks
+  mined_pairs_csv: data/pairs/mined_pairs.csv
   image_size: 384
   batch_size: 8
   num_workers: 4

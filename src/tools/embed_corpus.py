@@ -5,13 +5,11 @@ model will later train on."""
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import numpy as np
 
+from src.paths import DATA_ROOT
 from src.tools.retrieval import ImageIdDataset, extract_embeddings, load_siglip2, load_tianmu
 
-DATA_ROOT = Path("/workspace/emb/data")
 IMAGE_DIR = DATA_ROOT / "raw/images-800px"
 MASK_DIR = DATA_ROOT / "masks"
 OUT_DIR = DATA_ROOT / "embeddings"

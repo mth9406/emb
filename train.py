@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import argparse
 import shutil
-from pathlib import Path
 
 import pytorch_lightning as pl
 import yaml
@@ -13,9 +12,8 @@ from torch.utils.data import DataLoader
 
 from src.dataset.view_dataset import MinedPairViewDataset
 from src.model.self_distill import SelfDistillModule
+from src.paths import EXPERIMENTS_ROOT, resolve
 from src.tools.fixed_query_callback import FixedQueryCallback
-
-EXPERIMENTS_ROOT = Path("/workspace/emb/experiments")
 
 
 def main() -> None:
@@ -25,6 +23,8 @@ def main() -> None:
 
     with open(args.config, encoding="utf-8") as f:
         cfg = yaml.safe_load(f)
+    for key in ["image_dir", "mask_dir", "mined_pairs_csv"]:
+        cfg["data"][key] = resolve(cfg["data"][key])
 
     run_dir = EXPERIMENTS_ROOT / cfg["run_name"]
     run_dir.mkdir(parents=True, exist_ok=True)

@@ -3,9 +3,9 @@
 # ~0.98s/step; max_steps picked so training + periodic checkpoint/retrieval
 # overhead (~43s per occurrence, 10 occurrences) stays under ~56 minutes.
 data:
-  image_dir: /workspace/emb/data/raw/images-800px
-  mask_dir: /workspace/emb/data/masks
-  mined_pairs_csv: /workspace/emb/data/pairs/mined_pairs.csv
+  image_dir: data/raw/images-800px
+  mask_dir: data/masks
+  mined_pairs_csv: data/pairs/mined_pairs.csv
   image_size: 384
   batch_size: 8
   num_workers: 4

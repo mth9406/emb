@@ -26,6 +26,7 @@ from PIL import Image
 
 from src.dataset.view_dataset import load_image, load_mask
 from src.dataset.transforms import global_view
+from src.paths import DATA_ROOT
 from src.tools.query_report import ShapeIoULookup, render_query_report, stack_model_reports
 from src.tools.retrieval import (
     ImageIdDataset,
@@ -38,7 +39,6 @@ from src.tools.retrieval import (
 from src.tools.shape_descriptors import to_canonical
 from src.tools.shape_recall import load_proxy_positives, per_anchor_recall, recall_at_n
 
-DATA_ROOT = Path("/workspace/emb/data")
 IMAGE_DIR = DATA_ROOT / "raw/images-800px"
 MASK_DIR = DATA_ROOT / "masks"
 TEST_IMAGE_DIR = DATA_ROOT / "raw/images-800px-test"
